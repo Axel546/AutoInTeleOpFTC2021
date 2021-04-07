@@ -1,206 +1,97 @@
 package org.firstinspires.ftc.teamcode.autonomytest;
 
-import com.acmerobotics.roadrunner.drive.DriveSignal;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.acmerobotics.roadrunner.trajectory.Trajectory;
 import com.acmerobotics.roadrunner.trajectory.TrajectoryBuilder;
-import com.acmerobotics.roadrunner.util.NanoClock;
+import com.acmerobotics.roadrunner.trajectory.TrajectoryBuilderKt;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import org.firstinspires.ftc.teamcode.autonomytest.AutonomieTest1;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
-@Autonomous(name = "Autonomie1Disc", group = "autonomytest")
-public class Autonomie1Disc extends OpMode {
+import org.firstinspires.ftc.teamcode.rr_quickstart_examples.drive.SampleMecanumDrive;
 
-    Robot bot;
+/*
+ * This is an example of a more complex path to really test the tuning.
+ */
+@Autonomous(name = "Autonomie1Disc", group = "autonomy")
+public class Autonomie1Disc extends LinearOpMode {
+    @Override
+    public void runOpMode() throws InterruptedException {
+        SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
 
-    private enum State {BEGIN, AWAY, PAUSE, PAUSE1, PAUSE2, PAUSE3, PAUSE4, PAUSE5, PAUSE6, PAUSE7, AWAY1, AWAY2, AWAY3, AWAY4, AWAY5, AWAY6, AWAY7, AWAY8, DONE,}
-    State state = State.BEGIN;
+        waitForStart();
 
-    NanoClock clock;
-    double startPause;
+        if (isStopRequested()) return;
 
-    Trajectory traj;
+//        Trajectory traj = drive.trajectoryBuilder(new Pose2d())
+//                .splineTo(new Pose2d(30, 30, 0))
+//                .build();
 
-    public void init(){
-        bot = new Robot(hardwareMap);
-        clock = NanoClock.system();
+        Trajectory trajPowershot1 = new TrajectoryBuilder(new Pose2d(), drive.constraints)
+                .splineTo(new Vector2d(63, 12), 0)
+                .build();
+
+        Trajectory trajPowershot2 = new TrajectoryBuilder(trajPowershot1.end(), drive.constraints)
+                .strafeTo(new Vector2d(63,8))
+                .build();
+
+        Trajectory trajPowershot3 = new TrajectoryBuilder(trajPowershot2.end(), drive.constraints)
+                .strafeTo(new Vector2d(63,4))
+                .build();
+
+        Trajectory putAwayWobble1 = new TrajectoryBuilder(trajPowershot3.end(), drive.constraints)
+                .splineTo(new Vector2d(69,-18),Math.toRadians(-90))
+                .build();
+
+        Trajectory littleBack = new TrajectoryBuilder(putAwayWobble1.end(), drive.constraints)
+                .strafeTo(new Vector2d(69,-8))
+                .build();
+
+        Trajectory returnToBase = new TrajectoryBuilder(littleBack.end(), drive.constraints)
+                .splineTo(new Vector2d(45,-11),Math.toRadians(180))
+                .build();
+
+        Trajectory littleFront = new TrajectoryBuilder(returnToBase.end(), drive.constraints)
+                .strafeTo(new Vector2d(30,-11))
+                .build();
+
+        Trajectory putAwayWobble2 = new TrajectoryBuilder(littleFront.end().plus(new Pose2d(0,0,Math.toRadians(-180))), drive.constraints)
+                .splineTo(new Vector2d(63,-22.5),0)
+                .build();
+
+        Trajectory trajShoot = new TrajectoryBuilder(putAwayWobble2.end(), drive.constraints)
+                .back(3)
+                .splineToConstantHeading(new Vector2d(63,-8),0)
+                .build();
+
+        Trajectory parkRobot = new TrajectoryBuilder(trajShoot.end(), drive.constraints)
+                .strafeTo(new Vector2d(65,-8))
+                .build();
+
+
+        drive.followTrajectory(trajPowershot1);
+        sleep(500);
+        drive.followTrajectory(trajPowershot2);
+        sleep(500);
+        drive.followTrajectory(trajPowershot3);
+        sleep(500);
+        drive.followTrajectory(putAwayWobble1);
+        sleep(500);
+        drive.followTrajectory(littleBack);
+        drive.followTrajectory(returnToBase);
+        drive.followTrajectory(littleFront);
+        sleep(500);
+        drive.turn(Math.toRadians(180));
+        drive.followTrajectory(putAwayWobble2);
+        sleep(500);
+        drive.followTrajectory(trajShoot);
+        sleep(500);
+        drive.followTrajectory(parkRobot);
+
+//        drive.followTrajectory(
+//                drive.trajectoryBuilder(new Pose2d(30, 30, Math.toRadians(0)))
+//                        .splineTo(new Pose2d(0, 0, Math.toRadians(180)))
+//                        .build()
+//        );
     }
-
-    public void loop() {
-        bot.updatePoseEstimate();
-        Pose2d currentPose = bot.getPoseEstimate();
-
-        telemetry.addData("POSE", "X = %.2f  Y = %.2f  H = %.1f", currentPose.getX(),
-                currentPose.getY(), Math.toDegrees(currentPose.getHeading()));
-
-        switch (state) {
-            case BEGIN:
-                state = State.AWAY;
-                traj = new TrajectoryBuilder(new Pose2d(), bot.constraints)
-                        .strafeLeft(5)
-                        .splineToConstantHeading(new Vector2d(63,26),0)
-                        .build();
-                bot.follower.followTrajectory(traj);
-                break;
-            case AWAY:
-                bot.setDriveSignal(bot.follower.update(currentPose));
-                if (!bot.follower.isFollowing()) {
-                    state = State.PAUSE;
-                    bot.setDriveSignal(new DriveSignal());
-                    startPause = clock.seconds();
-                    //arunca primul disc in powershot
-                }
-                break;
-            case PAUSE:
-                if ((clock.seconds() - startPause) > 2.0) {
-                    state = State.AWAY1;
-                    traj = new TrajectoryBuilder(new Pose2d(63, 26, 0), bot.constraints)
-                            .strafeTo(new Vector2d(63, 22))
-                            .build();
-                    bot.follower.followTrajectory(traj);
-                }
-                break;
-            case AWAY1:
-                bot.setDriveSignal(bot.follower.update(currentPose));
-                if (!bot.follower.isFollowing()) {
-                    state = State.PAUSE1;
-                    bot.setDriveSignal(new DriveSignal());
-                    startPause = clock.seconds();
-                    //arunca al doilea disc in powershot
-                }
-                break;
-            case PAUSE1:
-                if ((clock.seconds() - startPause) > 2.0) {
-                    state = State.AWAY2;
-                    traj = new TrajectoryBuilder(new Pose2d(63, 22, 0), bot.constraints)
-                            .strafeTo(new Vector2d(63, 18))
-                            .build();
-                    bot.follower.followTrajectory(traj);
-                }
-                break;
-            case AWAY2:
-                bot.setDriveSignal(bot.follower.update(currentPose));
-                if (!bot.follower.isFollowing()) {
-                    state = State.PAUSE2;
-                    bot.setDriveSignal(new DriveSignal());
-                    startPause = clock.seconds();
-                    //arunca al treilea disc in powershot
-                }
-                break;
-            case PAUSE2:
-                if ((clock.seconds() - startPause) > 2.0) {
-                    state = State.AWAY3;
-                    traj = new TrajectoryBuilder(new Pose2d(63, 18, 0), bot.constraints)
-                            .strafeTo(new Vector2d(85,0))
-                            .build();
-                    bot.follower.followTrajectory(traj);
-                }
-                break;
-            case AWAY3:
-                bot.setDriveSignal(bot.follower.update(currentPose));
-                if (!bot.follower.isFollowing()) {
-                    state = State.PAUSE3;
-                    bot.setDriveSignal(new DriveSignal());
-                    startPause = clock.seconds();
-                    //lasa wobble1
-                }
-                break;
-            case PAUSE3:
-                if ((clock.seconds() - startPause) > 2.0) {
-                    state = State.AWAY4;
-                    traj = new TrajectoryBuilder(new Pose2d(85, 0, 0), bot.constraints)
-                            .strafeRight(10)
-                            .splineToConstantHeading(new Vector2d(15,-22.5),0)
-                            .build();
-                    bot.follower.followTrajectory(traj);
-                }
-                break;
-            case AWAY4:
-                bot.setDriveSignal(bot.follower.update(currentPose));
-                if (!bot.follower.isFollowing()) {
-                    state = State.PAUSE4;
-                    bot.setDriveSignal(new DriveSignal());
-                    startPause = clock.seconds();
-                    //ia wobble2
-                }
-                break;
-            case PAUSE4:
-                if ((clock.seconds() - startPause) > 2.0) {
-                    state = State.AWAY5;
-                    traj = new TrajectoryBuilder(new Pose2d(15, -22.5, 0), bot.constraints)
-                            .strafeTo(new Vector2d(10,0))
-                            .build();
-                    bot.follower.followTrajectory(traj);
-                }
-                break;
-            case AWAY5:
-                bot.setDriveSignal(bot.follower.update(currentPose));
-                if (!bot.follower.isFollowing()) {
-                    state = State.PAUSE5;
-                    bot.setDriveSignal(new DriveSignal());
-                    startPause = clock.seconds();
-                    //lasa wobble2 si totodata parcheaza
-                }
-                break;
-            case PAUSE5:
-                if ((clock.seconds() - startPause) > 2.0) {
-                    state = State.AWAY6;
-                    traj = new TrajectoryBuilder(new Pose2d(10, 0, 0), bot.constraints)
-                            .lineTo(new Vector2d(63,0))
-                            .build();
-                    bot.follower.followTrajectory(traj);
-                }
-                break;
-            case AWAY6:
-                bot.setDriveSignal(bot.follower.update(currentPose));
-                if (!bot.follower.isFollowing()) {
-                    state = State.PAUSE6;
-                    bot.setDriveSignal(new DriveSignal());
-                    startPause = clock.seconds();
-                    //arunca dicul pe care il ia.
-                }
-                break;
-            case PAUSE6:
-                if ((clock.seconds() - startPause) > 2.0) {
-                    state = State.AWAY7;
-                    traj = new TrajectoryBuilder(new Pose2d(63, 0, 0), bot.constraints)
-                            .lineTo(new Vector2d(80,0))
-                            .build();
-                    bot.follower.followTrajectory(traj);
-                }
-                break;
-            case AWAY7:
-                bot.setDriveSignal(bot.follower.update(currentPose));
-                if (!bot.follower.isFollowing()) {
-                    state = State.PAUSE7;
-                    bot.setDriveSignal(new DriveSignal());
-                    startPause = clock.seconds();
-                    //arunca dicul pe care il ia.
-                }
-                break;
-            case PAUSE7:
-                if ((clock.seconds() - startPause) > 2.0) {
-                    state = State.AWAY8;
-                    traj = new TrajectoryBuilder(new Pose2d(80, 0, 0), bot.constraints)
-                            .lineTo(new Vector2d(70,0))
-                            .build();
-                    bot.follower.followTrajectory(traj);
-                }
-                break;
-            case AWAY8:
-                bot.setDriveSignal(bot.follower.update(currentPose));
-                if (!bot.follower.isFollowing()) {
-                    state = State.DONE;
-                    bot.setDriveSignal(new DriveSignal());
-                    startPause = clock.seconds();
-                    //arunca dicul pe care il ia.
-                }
-                break;
-            case DONE:
-                break;
-        }
-    }
-
 }

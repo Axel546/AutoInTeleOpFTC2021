@@ -60,7 +60,7 @@ public class TrajectoriesInTele extends LinearOpMode {
     Vector2d targetBVector = new Vector2d(-15, 25);
 
     // The angle we want to align to when we press Y
-    double targetAngle = Math.toRadians(45);
+    double targetAngle = Math.toRadians(0);
 
     private List<Pose2d> allCoordinates;
 
@@ -143,18 +143,6 @@ public class TrajectoriesInTele extends LinearOpMode {
 
                         Trajectory traj1 = drive.trajectoryBuilder(poseEstimate)
                                 .splineTo(targetAVector, targetAHeading)
-                                .build();
-
-                        drive.followTrajectoryAsync(traj1);
-
-                        currentMode = Mode.AUTOMATIC_CONTROL;
-                    } else if (gamepad1.b) {
-                        // If the B button is pressed on gamepad1, we generate a lineTo()
-                        // trajectory on the fly and follow it
-                        // We switch the state to AUTOMATIC_CONTROL
-
-                        Trajectory traj1 = drive.trajectoryBuilder(poseEstimate)
-                                .lineTo(targetBVector)
                                 .build();
 
                         drive.followTrajectoryAsync(traj1);
