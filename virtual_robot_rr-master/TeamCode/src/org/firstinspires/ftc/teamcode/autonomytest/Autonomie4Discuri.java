@@ -32,17 +32,19 @@ public class Autonomie4Discuri extends LinearOpMode {
                 .build();
 
         Trajectory putAwayWobble1 = new TrajectoryBuilder(trajPowershot.end(), drive.constraints)
-                .splineTo(new Vector2d(110,-10),Math.toRadians(-90))
-                .splineTo(new Vector2d(53,-20),Math.toRadians(180))
-                .splineToConstantHeading(new Vector2d(50,-12),Math.toRadians(180))
-                .splineTo(new Vector2d(48,0),Math.toRadians(100))
-                .splineTo(new Vector2d(38,-11),Math.toRadians(180))
+                .splineTo(new Vector2d(110,-6),Math.toRadians(-90))
+                .splineTo(new Vector2d(53,-20),Math.toRadians(130))
                 .build();
 
-        Trajectory takeWobble = new TrajectoryBuilder(putAwayWobble1.end(),drive.constraints)
-                .strafeTo(new Vector2d(35,-11))
+        Trajectory takeRings = new TrajectoryBuilder(putAwayWobble1.end(),drive.constraints)
+                .strafeTo(new Vector2d(44,-11))
                 .build();
-        Trajectory trajShoot = new TrajectoryBuilder(takeWobble.end().plus(new Pose2d(0,0,Math.toRadians(180))), drive.constraints)
+
+        Trajectory takeWobble2 = new TrajectoryBuilder(takeRings.end(),drive.constraints)
+                .splineTo(new Vector2d(30,-11),Math.toRadians(180))
+                .build();
+
+        Trajectory trajShoot = new TrajectoryBuilder(takeRings.end().plus(new Pose2d(0,0,Math.toRadians(180))), drive.constraints)
                 .splineTo(new Vector2d(63,-8),0)
                 .build();
 
@@ -95,8 +97,10 @@ public class Autonomie4Discuri extends LinearOpMode {
         drive.turn(Math.toRadians(-2));
         sleep(500);
         drive.followTrajectory(putAwayWobble1);
-        drive.followTrajectory(takeWobble);
+        drive.followTrajectory(takeRings);
         sleep(200);
+        //drive.turn(Math.toRadians(90));
+        drive.followTrajectory(takeWobble2);
         drive.turn(Math.toRadians(180));
         drive.followTrajectory(trajShoot);
         sleep(2000);
